@@ -1,12 +1,10 @@
 import os
 import subprocess
-# 修改点 1: 切换到 OpenAI 库 (DeepSeek 官方推荐使用 OpenAI SDK)
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-# 修改点 2: 初始化 DeepSeek 客户端
 # 注意：BASE_URL 通常为 https://api.deepseek.com
 client = OpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"), 
@@ -17,7 +15,7 @@ MODEL = os.getenv("MODEL_ID", "deepseek-chat")
 
 SYSTEM = f"You are a coding agent at {os.getcwd()}. Use bash to solve tasks. Act, don't explain."
 
-# 修改点 3: 工具定义格式调整为 OpenAI/DeepSeek 标准格式
+# 工具定义格式调整为 OpenAI/DeepSeek 标准格式
 TOOLS = [{
     "type": "function", # 必须指定 type 为 function
     "function": {
@@ -44,12 +42,10 @@ def run_bash(command: str) -> str:
         return "Error: Timeout (120s)"
 
 def agent_loop(messages: list):
-    # 修改点 4: 将 System Prompt 放入消息列表头部（OpenAI 规范）
     if messages[0].get("role") != "system":
         messages.insert(0, {"role": "system", "content": SYSTEM})
 
     while True:
-        # 修改点 5: 调用接口参数调整
         response = client.chat.completions.create(
             model=MODEL,
             messages=messages,
@@ -58,14 +54,14 @@ def agent_loop(messages: list):
         )
         
         message = response.choices[0].message
-        # 修改点 6: 保存 Assistant 消息时需处理 OpenAI 的特殊对象格式
+        # 保存 Assistant 消息时需处理 OpenAI 的特殊对象格式
         messages.append(message) 
 
-        # 修改点 7: 判断是否需要继续调用工具 (finish_reason)
+        # 判断是否需要继续调用工具 (finish_reason)
         if message.tool_calls is None:
             return
 
-        # 修改点 8: 执行工具调用并反馈结果
+        # 执行工具调用并反馈结果
         for tool_call in message.tool_calls:
             import json
             # 解析参数
@@ -76,7 +72,7 @@ def agent_loop(messages: list):
             output = run_bash(command)
             print(output[:200])
             
-            # 修改点 9: 结果反馈的消息结构
+            # 结果反馈的消息结构
             messages.append({
                 "role": "tool",
                 "tool_call_id": tool_call.id,
@@ -96,7 +92,7 @@ if __name__ == "__main__":
         history.append({"role": "user", "content": query})
         agent_loop(history)
         
-        # 修改点 10: 打印最后一条消息的文本内容
+        # 打印最后一条消息的文本内容
         last_msg = history[-1]
         if hasattr(last_msg, 'content') and last_msg.content:
              print(last_msg.content)
